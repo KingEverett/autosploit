@@ -1,0 +1,27 @@
+[project]
+name = "autosploit"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.13"
+dependencies = [
+    "black>=25.9.0",
+    "cmd2>=2.7.0",
+    "mypy>=1.18.2",
+    "pydantic>=2.12.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "python-can>=4.6.1",
+    "rich>=14.2.0",
+    "ruff>=0.14.0",
+    "structlog>=25.4.0",
+    "tomli>=2.3.0",
+    "tomli-w>=1.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+]
+
