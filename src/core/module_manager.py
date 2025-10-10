@@ -63,7 +63,7 @@ class ModuleManager:
                 if item.is_dir():
                     self._scan_directory(base_path, item)
 
-                elif item .suffix == '.py':
+                elif item.suffix == '.py':
                     self._load_module(base_path, item)
 
         except PermissionError as e:
@@ -136,7 +136,7 @@ class ModuleManager:
             return sorted(self.modules.keys())
         
         filtered = [
-            path for path in self.modules.keys
+            path for path in self.modules.keys()
             if path.startswith(f"{category}/")
         ]
         return sorted(filtered)

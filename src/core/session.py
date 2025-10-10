@@ -78,13 +78,15 @@ class SessionManager:
     
     def set_current(self, session_id: str):
         if session_id not in self.sessions:
-             raise KeyError(f"Session not found: {session_id}")
+            raise KeyError(f"Session not found: {session_id}")
+
         if self.current_session_id:
             old_session = self.sessions.get(self.current_session_id)
             if old_session:
-                  old_session.touch()
-            self.current_session_id = session_id
-            self.sessions[session_id].touch()
+                old_session.touch()
+
+        self.current_session_id = session_id
+        self.sessions[session_id].touch()
             
     def get_current(self) -> Optional[Session]:
         if self.current_session_id:
