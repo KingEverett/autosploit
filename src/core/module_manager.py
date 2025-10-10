@@ -140,3 +140,30 @@ class ModuleManager:
             if path.startswith(f"{category}/")
         ]
         return sorted(filtered)
+
+    def search_modules(self, query: str) -> List[str]:
+        query_lower = query.lower()
+        results = []
+        
+        for path, module_class in self.modules.items():
+            # Check if query matches path
+            if query_lower in path.lower():
+                results.append(path)
+                continue
+            
+            # Check module metadata
+            try:
+                # Create temporary instance to get info
+                temp_instance = module_class()
+                info = temp_instance.get_info()
+                
+                # Search in name and description
+                if (query_lower in info.name.lower() or
+                    query_lower in info.description.lower()):
+                    results.append(path)
+            
+            except Exception:
+                # If module fails to instantiate, skip it
+                continue
+        
+        return sorted(results)
