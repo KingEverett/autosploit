@@ -1,0 +1,87 @@
+# Autosploit Safety Configuration
+#
+# This configuration controls safety mechanisms that prevent dangerous
+# operations during automotive security testing.
+#
+# ⚠️  WARNING: Modifying these settings can result in vehicle damage or injury.
+#              Only change these values if you fully understand the implications.
+
+[blacklist]
+# Critical CAN IDs that should never be accessed during testing
+# These typically correspond to safety-critical systems.
+#
+# Common automotive safety systems (examples - verify for your vehicle):
+#   - Airbag systems: Often 0x050-0x0FF range
+#   - Steering control: Often 0x200-0x2FF range
+#   - Brake systems: Often 0x300-0x3FF range
+#   - Engine/Powertrain: Often 0x400-0x4FF range
+#
+# Note: These are examples. Always check your specific vehicle's CAN bus
+# specification before testing.
+
+critical_ids = [
+    0x050,  # Airbag sensor data
+    0x060,  # Airbag control module
+    0x0C4,  # Airbag deployment
+    0x200,  # Steering angle sensor
+    0x210,  # Steering control module
+    0x220,  # Power steering
+    0x300,  # Brake pressure sensor
+    0x310,  # ABS control module
+    0x320,  # Electronic stability control
+    0x400,  # Engine control module (critical functions)
+    0x410,  # Throttle control
+]
+
+# Reason for blacklist (displayed in warnings)
+reason = "Critical safety system - NEVER modify during testing"
+
+[rate_limits]
+# Maximum CAN messages per second (prevents bus flooding)
+# Standard CAN bus capacity: ~8000 msgs/sec at 500kbps
+# Conservative limit prevents overwhelming bus or ECUs
+max_messages_per_second = 100
+
+# Maximum burst size (messages sent in quick succession)
+max_burst = 10
+
+# Time window for rate limit calculation (seconds)
+window_seconds = 1.0
+
+[confirmations]
+# Require user confirmation for dangerous operations
+require_for_write = true      # Require confirmation before writing to CAN
+require_for_fuzzing = true    # Require confirmation before fuzzing
+require_for_exploit = true    # Require confirmation before running exploits
+skip_for_read_only = true     # Skip confirmation for read-only operations
+
+# Auto-confirm in non-interactive mode (DANGEROUS - use only for automation)
+auto_confirm_non_interactive = false
+
+[monitoring]
+# Bus health monitoring settings
+enable_bus_monitoring = true
+
+# Alert when error frame count exceeds this threshold
+alert_on_error_frames = true
+error_threshold = 10
+
+# Monitoring interval (seconds)
+monitor_interval_seconds = 1.0
+
+# Alert on bus-off condition (ECU removed from bus due to errors)
+alert_on_bus_off = true
+
+[backup]
+# Automatic backup before dangerous operations
+enable_auto_backup = true
+
+# Backup location
+backup_directory = "~/.autosploit/backups"
+
+# Maximum number of backups to keep
+max_backups = 10
+
+# Backup what?
+backup_can_traffic = true     # Backup CAN traffic before modifications
+backup_session_state = true   # Backup session state

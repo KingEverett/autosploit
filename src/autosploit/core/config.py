@@ -135,6 +135,18 @@ class SafetyConfig(BaseModel):
         default=True,
         description="Automatically backup current state before write operations"
     )
+    monitor_interval_seconds: float = Field(
+        default=1.0,
+        ge=0.1,
+        le=60.0,
+        description="Bus monitoring interval in seconds"
+    )
+    error_threshold: int = Field(
+        default=10,
+        ge=1,
+        le=100,
+        description="Error frame count threshold for alerts"
+    )
 
     @field_validator("dangerous_ids")
     @classmethod

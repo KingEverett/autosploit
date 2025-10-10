@@ -36,6 +36,8 @@ max_messages_per_second = 100
 enable_bus_monitoring = true
 emergency_stop_enabled = true
 auto_backup_before_write = true
+monitor_interval_seconds = 1.0
+error_threshold = 10
 
 [ui]
 prompt_style = "standard"
