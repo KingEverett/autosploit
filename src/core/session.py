@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from uuid import uuid4
 
 class Session:
@@ -29,7 +29,7 @@ class Session:
         return self.config.get(key, default)
     
     def touch(self):
-         self.lastactivity = datetime.now()
+         self.last_activity = datetime.now()
 
     def __repr__(self) -> str:
          status = "active" if self.is_active else "inactive"
@@ -49,7 +49,7 @@ class SessionManager:
          session = Session()
          session.config.update(config)
 
-         self.sessions[session.session_id] =- session
+         self.sessions[session.session_id] = session
 
          if self.current_session_id is None:
               self.current_session_id = session.session_id
@@ -73,7 +73,7 @@ class SessionManager:
     def get_session(self, session_id: str) -> Optional[Session]:
          return self.sessions.get(session_id)
     
-    def list_sessions(self) -> list[Session]:
+    def list_sessions(self) -> List[Session]:
          return sorted(self.sessions.values(), key=lambda s: s.created_at)
     
     def set_current(self, session_id: str):
@@ -91,6 +91,6 @@ class SessionManager:
             return self.sessions.get(self.current_session_id)
         return None
     
-    
+
             
     
