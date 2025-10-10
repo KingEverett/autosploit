@@ -1,0 +1,54 @@
+# Autosploit Default Configuration
+# Version: 1.0.0
+#
+# Override hierarchy (highest to lowest priority):
+#   1. Command-line arguments
+#   2. Environment variables (AUTOSPLOIT_SECTION__KEY=value)
+#   3. Workspace config (./workspace/config.toml)
+#   4. User config (~/.autosploit/config.toml)
+#   5. This default config
+
+config_version = "1.0.0"
+
+[logging]
+level = "INFO"
+file_path = "~/.autosploit/logs/autosploit.log"
+max_bytes = 10485760  # 10MB
+backup_count = 5
+console_output = true
+json_format = false
+include_timestamp = true
+log_can_traffic = false  # WARNING: generates very large logs
+
+[hardware]
+default_interface = "socketcan"
+default_channel = "vcan0"
+default_bitrate = 500000  # Standard automotive bitrate
+recv_timeout = 1.0
+reconnect_attempts = 3
+auto_reconnect = true
+
+[safety]
+require_confirmation = true
+# Critical automotive ECU IDs (Engine Control, Transmission, Gateway, OBD-II)
+dangerous_ids = [0x7E0, 0x7E1, 0x7E8, 0x7DF]
+max_messages_per_second = 100
+enable_bus_monitoring = true
+emergency_stop_enabled = true
+auto_backup_before_write = true
+
+[ui]
+prompt_style = "standard"
+show_timestamps = false
+table_style = "rounded"
+color_scheme = "default"
+show_banner = true
+page_results = true
+max_table_rows = 50
+
+[workspace]
+default_path = "~/.autosploit/workspace"
+auto_save_sessions = true
+save_interval_seconds = 300  # 5 minutes
+create_session_logs = true
+max_workspace_size_mb = 1000  # 1GB
