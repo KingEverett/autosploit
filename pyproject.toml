@@ -1,7 +1,7 @@
 [project]
 name = "autosploit"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automotive Security Testing Framework"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.13"
@@ -19,6 +19,9 @@ dependencies = [
     "tomli>=2.3.0",
     "tomli-w>=1.2.0",
 ]
+
+[project.scripts]
+autosploit = "autosploit.__main__:main"
 
 [dependency-groups]
 dev = [
