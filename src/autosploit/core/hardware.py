@@ -71,11 +71,13 @@ class CANInterface(HardwareInterface):
     def __init__(self, interface_type: str, channel: str,
                  bitrate: int = 500000, **kwargs):
         """Initialize CAN interface."""
-        if interface_type not in self.SUPPORTED_INTERFACES:
-            raise ValueError(
-                f"Unsupported interface: {interface_type}. "
-                f"Supported: {self.SUPPORTED_INTERFACES}"
-            )
+        from autosploit.lib.utils.validators import validate_choice, validate_interface_name, validate_bitrate
+        from autosploit.core.logger import get_logger
+
+        # Validate inputs
+        validate_choice(interface_type, self.SUPPORTED_INTERFACES, "interface_type").raise_if_invalid()
+        validate_interface_name(channel, interface_type).raise_if_invalid()
+        validate_bitrate(bitrate).raise_if_invalid()
 
         self.interface_type = interface_type
         self.channel = channel
@@ -91,6 +93,8 @@ class CANInterface(HardwareInterface):
         self._last_message_time = 0.0
         self._error_count = 0
 
+        self.logger = get_logger(__name__)
+
     @property
     def interface_name(self) -> str:
         """Get human-readable interface name."""
@@ -103,8 +107,11 @@ class CANInterface(HardwareInterface):
 
     def connect(self) -> bool:
         """Connect to the CAN interface."""
+        from autosploit.lib.utils.formatters import print_info, print_success, print_error
+
         try:
-            print(f"[*] Connecting to {self.interface_name}...")
+            print_info(f"Connecting to {self.interface_name}...")
+            self.logger.info("Connecting to CAN interface", interface=self.interface_name)
 
             # Create python-can Bus object
             self.bus = can.Bus(
@@ -118,12 +125,14 @@ class CANInterface(HardwareInterface):
             self._last_error = None
             self._last_message_time = time.time()
 
-            print(f"[+] Connected to {self.interface_name} at {self.bitrate} bps")
+            print_success(f"Connected to {self.interface_name} at {self.bitrate} bps")
+            self.logger.info("CAN interface connected", interface=self.interface_name, bitrate=self.bitrate)
             return True
 
         except can.CanError as e:
             self._last_error = str(e)
-            print(f"[-] CAN Error: {e}")
+            print_error(f"CAN Error: {e}")
+            self.logger.error("CAN connection error", error=str(e), interface=self.interface_name)
             return False
 
         except OSError as e:
@@ -131,30 +140,36 @@ class CANInterface(HardwareInterface):
 
             # Provide helpful error messages
             if "No such device" in str(e):
-                print(f"[-] Interface {self.channel} not found. ")
-                print(f"    For virtual CAN, run: sudo modprobe vcan; "
-                      f"sudo ip link add dev {self.channel} type vcan; "
-                      f"sudo ip link set up {self.channel}")
+                print_error(f"Interface {self.channel} not found")
+                print_info(f"For virtual CAN, run: sudo modprobe vcan; "
+                           f"sudo ip link add dev {self.channel} type vcan; "
+                           f"sudo ip link set up {self.channel}")
             elif "Permission denied" in str(e):
-                print(f"[-] Permission denied. Try: sudo chmod 666 /dev/{self.channel}")
+                print_error(f"Permission denied. Try: sudo chmod 666 /dev/{self.channel}")
             else:
-                print(f"[-] OS Error: {e}")
+                print_error(f"OS Error: {e}")
 
+            self.logger.error("OS error during connection", error=str(e), interface=self.interface_name)
             return False
 
         except Exception as e:
             self._last_error = str(e)
-            print(f"[-] Unexpected error: {e}")
+            print_error(f"Unexpected error: {e}")
+            self.logger.exception("Unexpected connection error", interface=self.interface_name)
             return False
 
     def disconnect(self):
         """Disconnect from the CAN interface."""
+        from autosploit.lib.utils.formatters import print_success, print_error
+
         if self.bus is not None:
             try:
                 self.bus.shutdown()
-                print(f"[+] Disconnected from {self.interface_name}")
+                print_success(f"Disconnected from {self.interface_name}")
+                self.logger.info("CAN interface disconnected", interface=self.interface_name)
             except Exception as e:
-                print(f"[-] Error during disconnect: {e}")
+                print_error(f"Error during disconnect: {e}")
+                self.logger.error("Error during disconnect", error=str(e), interface=self.interface_name)
             finally:
                 self.bus = None
                 self._last_message_time = 0.0
@@ -162,20 +177,15 @@ class CANInterface(HardwareInterface):
     def send(self, data: bytes, arbitration_id: int,
              is_extended: bool = False) -> bool:
         """Send data on the CAN bus."""
+        from autosploit.lib.utils.validators import validate_can_data, validate_can_id
+        from autosploit.lib.utils.formatters import print_error
+
         if not self.is_connected:
             raise ConnectionError("Not connected to hardware")
 
-        # Validate data length
-        if len(data) > 8:
-            raise ValueError(f"CAN data must be 0-8 bytes, got {len(data)}")
-
-        # Validate arbitration ID
-        if is_extended:
-            if not (0 <= arbitration_id <= 0x1FFFFFFF):  # 29-bit
-                raise ValueError(f"Extended ID must be 0x00000000-0x1FFFFFFF")
-        else:
-            if not (0 <= arbitration_id <= 0x7FF):  # 11-bit
-                raise ValueError(f"Standard ID must be 0x000-0x7FF")
+        # Validate using our validators
+        validate_can_data(data).raise_if_invalid()
+        validate_can_id(arbitration_id, extended=is_extended).raise_if_invalid()
 
         try:
             # Create CAN message
@@ -194,7 +204,8 @@ class CANInterface(HardwareInterface):
         except can.CanError as e:
             self._error_count += 1
             self._last_error = str(e)
-            print(f"[-] Send error: {e}")
+            print_error(f"Send error: {e}")
+            self.logger.error("CAN send error", error=str(e), arbitration_id=hex(arbitration_id))
 
             # Attempt auto-reconnect
             if self._should_reconnect():
@@ -205,7 +216,8 @@ class CANInterface(HardwareInterface):
         except Exception as e:
             self._error_count += 1
             self._last_error = str(e)
-            print(f"[-] Unexpected send error: {e}")
+            print_error(f"Unexpected send error: {e}")
+            self.logger.exception("Unexpected send error", arbitration_id=hex(arbitration_id))
             return False
 
     def recv(self, timeout: float = 1.0) -> Optional[Message]:
@@ -226,7 +238,9 @@ class CANInterface(HardwareInterface):
         except can.CanError as e:
             self._error_count += 1
             self._last_error = str(e)
-            print(f"[-] Receive error: {e}")
+            from autosploit.lib.utils.formatters import print_error
+            print_error(f"Receive error: {e}")
+            self.logger.error("CAN receive error", error=str(e))
 
             # Attempt auto-reconnect
             if self._should_reconnect():
@@ -235,7 +249,9 @@ class CANInterface(HardwareInterface):
             return None
 
         except Exception as e:
-            print(f"[-] Unexpected receive error: {e}")
+            from autosploit.lib.utils.formatters import print_error
+            print_error(f"Unexpected receive error: {e}")
+            self.logger.exception("Unexpected receive error")
             return None
 
     def _should_reconnect(self) -> bool:
@@ -248,20 +264,24 @@ class CANInterface(HardwareInterface):
 
     def _attempt_reconnect(self):
         """Attempt to reconnect to the hardware."""
+        from autosploit.lib.utils.formatters import print_warning, print_info, print_success, print_error
+
         self._connection_attempts += 1
-        print(f"[!] Reconnection attempt {self._connection_attempts}/{self._max_reconnect_attempts}")
+        print_warning(f"Reconnection attempt {self._connection_attempts}/{self._max_reconnect_attempts}")
+        self.logger.info("Attempting reconnection", attempt=self._connection_attempts, max_attempts=self._max_reconnect_attempts)
 
         self.disconnect()
 
         delay = 2 ** (self._connection_attempts - 1)
-        print(f"[*] Waiting {delay} seconds...")
+        print_info(f"Waiting {delay} seconds...")
         time.sleep(delay)
 
         if self.connect():
-            print(f"[+] Reconnection successful!")
+            print_success("Reconnection successful!")
             self._error_count = 0
         else:
-            print(f"[-] Reconnection failed")
+            print_error("Reconnection failed")
+            self.logger.error("Reconnection failed", attempt=self._connection_attempts)
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get connection health status."""
@@ -304,7 +324,9 @@ class CANInterface(HardwareInterface):
                 break
             count += 1
         if count > 0:
-            print(f"[*] Flushed {count} pending messages")
+            from autosploit.lib.utils.formatters import print_info
+            print_info(f"Flushed {count} pending messages")
+            self.logger.info("Flushed pending messages", count=count)
 
     def send_and_wait(self, data: bytes, arbitration_id: int,
                       response_id: Optional[int] = None,

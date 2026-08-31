@@ -71,10 +71,12 @@ class PluginBase(ABC):
                 return {'status': 'success'}
     """
 
-    def __init__(self, session: Optional['Session'] = None): #will make Session in a moment
+    def __init__(self, session: Optional['Session'] = None):
         self.session = session
         self.options: Dict[str, ModuleOption] = {}
-        self.logger = None #make sure to set up properly when we add logging
+
+        from autosploit.core.logger import get_logger
+        self.logger = get_logger(self.__class__.__module__)
 
         self._setup_options()
 
@@ -116,18 +118,20 @@ class PluginBase(ABC):
         return True
 
     def set_option(self, name: str, value: Any):
-        #set the value of a module option
         if name not in self.options:
             raise KeyError(f"Unknown option: {name}")
+
         option = self.options[name]
-        if option.choices is not None and value not in option.choices:
-            #validating against choices if defined
-            raise ValueError(
-                f"Invalid value '{value}' for {name}. "
-                f"Must be one of: {option.choices}"
-            )
+
+        # Validate against choices if defined
+        if option.choices is not None:
+            from autosploit.lib.utils.validators import validate_choice
+            result = validate_choice(value, option.choices, name)
+            if not result:
+                raise ValueError(result.error_message + "\n" + result.suggestion)
+
         option.value = value
-        self.log_info(f"Set {name} = {value}")
+        self.logger.info(f"Set {name} = {value}", option=name, value=value)
         
     def get_option(self, name:str) -> Any:
         #retrieves the current value of an option
@@ -137,17 +141,22 @@ class PluginBase(ABC):
         return self.options[name].value
         
 
-    def log_info(self, msg: str):
-        #informational message
-        print(f"[*] {msg}")
+    def log_info(self, msg: str, **kwargs):
+        from autosploit.lib.utils.formatters import print_info
+        print_info(msg)
+        self.logger.info(msg, **kwargs)
 
-    def log_success(self, msg: str):
-        #success message
-        print(f"[+] {msg}")
+    def log_success(self, msg: str, **kwargs):
+        from autosploit.lib.utils.formatters import print_success
+        print_success(msg)
+        self.logger.info(msg, **kwargs)
 
-    def log_error(self, msg: str):
-        #error message
-        print(f"[-] {msg}")
+    def log_error(self, msg: str, **kwargs):
+        from autosploit.lib.utils.formatters import print_error
+        print_error(msg)
+        self.logger.error(msg, **kwargs)
 
-    def log_warning(self, msg: str):
-        print(f"[!] {msg}")
+    def log_warning(self, msg: str, **kwargs):
+        from autosploit.lib.utils.formatters import print_warning
+        print_warning(msg)
+        self.logger.warning(msg, **kwargs)
